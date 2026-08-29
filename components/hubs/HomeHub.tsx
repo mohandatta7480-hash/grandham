@@ -315,9 +315,9 @@ export const HomeHub: React.FC<HomeHubProps> = ({
   const starredTextbooks = textbooks.filter((t) => t.is_starred);
   const hasStarred = starredNotebooks.length > 0 || starredTextbooks.length > 0;
 
-  // Sorted upcoming assignments (sorted by nearest deadline first)
+  // Sorted upcoming active assignments (sorted by nearest deadline first)
   const sortedAssignments = [...assignments]
-    .filter((a) => !a.is_deleted && !a.isDeleted)
+    .filter((a) => !a.is_completed && !a.is_deleted && !a.isDeleted)
     .sort((a, b) => {
       const dateA = a.due_date || a.dueDate || '';
       const dateB = b.due_date || b.dueDate || '';

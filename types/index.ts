@@ -286,26 +286,25 @@ export type PriorityLevel = 'low' | 'medium' | 'high' | 'urgent';
 export interface Assignment {
   id: string;
   user_id?: string;
-  subject_id?: string | null;
   title: string;
   course?: string;
   description?: string;
   notes?: string | null;
-  due_date?: string;
   dueDate?: string;
+  due_date?: string;
+  dueTime?: string | null;
   due_time?: string | null;
+  subjectId?: string | null;
+  subject_id?: string | null;
   status?: AssignmentStatus;
   priority?: PriorityLevel;
   grade?: string;
   notebookId?: string | null;
-  is_completed?: boolean;
-  isCompleted?: boolean;
-  is_deleted?: boolean;
-  isDeleted?: boolean;
-  created_at?: string;
-  updated_at?: string;
   createdAt?: string;
   updatedAt?: string;
+  isDeleted?: boolean;
+  is_deleted?: boolean;
+  is_completed?: boolean;
 }
 
 export interface Homework {
