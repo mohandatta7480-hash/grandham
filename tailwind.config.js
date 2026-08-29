@@ -1,0 +1,80 @@
+/** @type {import('tailwindcss').Config} */
+module.exports = {
+  darkMode: 'class',
+  content: [
+    './pages/**/*.{js,ts,jsx,tsx,mdx}',
+    './components/**/*.{js,ts,jsx,tsx,mdx}',
+    './app/**/*.{js,ts,jsx,tsx,mdx}',
+  ],
+  theme: {
+    extend: {
+      colors: {
+        // Theme Neutral Tokens
+        app: {
+          bg: 'var(--bg-main)',
+          surface: 'var(--bg-surface)',
+          'surface-hover': 'var(--bg-surface-hover)',
+          border: 'var(--border-subtle)',
+          'border-strong': 'var(--border-strong)',
+          text: 'var(--text-primary)',
+          'text-muted': 'var(--text-muted)',
+          'text-dim': 'var(--text-dim)',
+          accent: 'var(--accent-primary)',
+          'accent-subtle': 'var(--accent-subtle)',
+          'accent-text': 'var(--accent-text)',
+        },
+        stone: {
+          50: '#faf8f5',
+          100: '#f5f2eb',
+          200: '#e8e4dc',
+          300: '#d9d4c9',
+          400: '#a8a297',
+          500: '#787369',
+          600: '#57534b',
+          700: '#3e3b35',
+          800: '#2a2824',
+          900: '#1c1b18',
+          950: '#121210',
+        },
+        ink: {
+          50: '#f3f3f4',
+          100: '#e6e6e8',
+          200: '#cfcfd4',
+          300: '#a7a7b0',
+          400: '#757582',
+          500: '#545461',
+          600: '#3c3c46',
+          700: '#2a2a32',
+          800: '#1e1e24',
+          850: '#18181d',
+          900: '#131316',
+          950: '#0d0d0f',
+        },
+        gold: {
+          50: '#fbf7ee',
+          100: '#f5ebd3',
+          200: '#ebd6a7',
+          300: '#dfba72',
+          400: '#c59f58',
+          500: '#b08b41',
+          600: '#947032',
+          700: '#765628',
+          800: '#614624',
+          900: '#523a21',
+        },
+      },
+      fontFamily: {
+        sans: ['Inter', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
+        serif: ['Newsreader', 'Lora', 'Georgia', 'serif'],
+        mono: ['JetBrains Mono', 'Fira Code', 'monospace'],
+      },
+      boxShadow: {
+        'subtle': '0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.02)',
+        'elevated': '0 4px 20px -2px rgba(0,0,0,0.08), 0 2px 6px -1px rgba(0,0,0,0.04)',
+      },
+    },
+  },
+  plugins: [
+    require('@tailwindcss/typography'),
+  ],
+};

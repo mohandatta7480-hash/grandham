@@ -1,0 +1,50 @@
+{
+  "name": "GRANDHAM Notes",
+  "short_name": "GRANDHAM",
+  "description": "Dark-Theme Responsive Multi-Page Notes PWA with S Pen Handwriting, PDF.js & Supabase Sync",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#0f172a",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "/icons/icon-maskable.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ],
+  "categories": ["productivity", "education", "utilities"],
+  "shortcuts": [
+    {
+      "name": "New Quick Note",
+      "short_name": "New Note",
+      "description": "Create a new note instantly",
+      "url": "/?action=new-note",
+      "icons": [{ "src": "/icon.svg", "sizes": "any" }]
+    },
+    {
+      "name": "Textbooks",
+      "short_name": "Textbooks",
+      "description": "Open PDF textbooks and study materials",
+      "url": "/?view=textbooks",
+      "icons": [{ "src": "/icon.svg", "sizes": "any" }]
+    }
+  ]
+}
