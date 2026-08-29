@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { exchangeCodeForTokens, fetchGoogleUserEmail } from '@/lib/calendar/googleAuth';
+import { exchangeCodeForTokens, fetchGoogleUserEmail, getAppUrl } from '@/lib/calendar/googleAuth';
 import { supabase } from '@/lib/supabase/client';
 
 export async function GET(request: NextRequest) {
-  const origin = request.nextUrl.origin;
+  const appUrl = getAppUrl(request);
   const searchParams = request.nextUrl.searchParams;
   const code = searchParams.get('code');
   const userId = searchParams.get('state');
@@ -11,15 +11,15 @@ export async function GET(request: NextRequest) {
 
   if (error) {
     console.error('Google OAuth callback error:', error);
-    return NextResponse.redirect(`${origin}/?hub=calendar&error=${encodeURIComponent(error)}`);
+    return NextResponse.redirect(`${appUrl}/?hub=calendar&error=${encodeURIComponent(error)}`);
   }
 
   if (!code || !userId) {
-    return NextResponse.redirect(`${origin}/?hub=calendar&error=Missing+authorization+code+or+user+state`);
+    return NextResponse.redirect(`${appUrl}/?hub=calendar&error=Missing+authorization+code+or+user+state`);
   }
 
   try {
-    const redirectUri = `${origin}/api/auth/google-calendar/callback`;
+    const redirectUri = `${appUrl}/api/auth/google-calendar/callback`;
     const tokens = await exchangeCodeForTokens(code, redirectUri);
 
     const email = await fetchGoogleUserEmail(tokens.access_token);
@@ -44,12 +44,12 @@ export async function GET(request: NextRequest) {
 
     if (dbError) {
       console.error('Failed to save Google Calendar connection in Supabase:', dbError);
-      return NextResponse.redirect(`${origin}/?hub=calendar&error=Failed+to+save+calendar+credentials`);
+      return NextResponse.redirect(`${appUrl}/?hub=calendar&error=Failed+to+save+calendar+credentials`);
     }
 
-    return NextResponse.redirect(`${origin}/?hub=calendar&google_connected=true`);
+    return NextResponse.redirect(`${appUrl}/?hub=calendar&google_connected=true`);
   } catch (err: any) {
     console.error('Failed in Google OAuth callback:', err);
-    return NextResponse.redirect(`${origin}/?hub=calendar&error=${encodeURIComponent(err.message || 'OAuth error')}`);
+    return NextResponse.redirect(`${appUrl}/?hub=calendar&error=${encodeURIComponent(err.message || 'OAuth error')}`);
   }
 }

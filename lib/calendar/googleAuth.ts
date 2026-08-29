@@ -1,6 +1,6 @@
 // Google Calendar OAuth & Token Management Helpers (Server-Side)
 
-import { supabase } from '@/lib/supabase/client';
+import { NextRequest } from 'next/server';
 
 export const GOOGLE_CALENDAR_SCOPES = [
   'https://www.googleapis.com/auth/calendar.events',
@@ -8,9 +8,78 @@ export const GOOGLE_CALENDAR_SCOPES = [
   'https://www.googleapis.com/auth/userinfo.email',
 ].join(' ');
 
-export function getGoogleOAuthUrl(origin: string, userId: string): string {
+/**
+ * Resolves the canonical base URL for the application.
+ * Priority:
+ * 1. Server-side process.env.APP_URL (e.g. https://grandham.vercel.app)
+ * 2. process.env.NEXT_PUBLIC_APP_URL
+ * 3. process.env.VERCEL_URL (automatically populated on Vercel)
+ * 4. Request headers: x-forwarded-proto + x-forwarded-host (reverse proxies & custom domains)
+ * 5. Request nextUrl.origin (if available)
+ * 6. Local development fallback (http://localhost:3000)
+ */
+export function getAppUrl(request?: NextRequest | Request): string {
+  // 1. Explicit server-side APP_URL environment variable
+  if (process.env.APP_URL) {
+    const raw = process.env.APP_URL.trim();
+    if (raw) {
+      return (raw.startsWith('http://') || raw.startsWith('https://')
+        ? raw
+        : `https://${raw}`).replace(/\/+$/, '');
+    }
+  }
+
+  // 2. Client/Server NEXT_PUBLIC_APP_URL
+  if (process.env.NEXT_PUBLIC_APP_URL) {
+    const raw = process.env.NEXT_PUBLIC_APP_URL.trim();
+    if (raw) {
+      return (raw.startsWith('http://') || raw.startsWith('https://')
+        ? raw
+        : `https://${raw}`).replace(/\/+$/, '');
+    }
+  }
+
+  // 3. Vercel deployment URL
+  if (process.env.VERCEL_URL) {
+    const raw = process.env.VERCEL_URL.trim();
+    if (raw) {
+      return (raw.startsWith('http://') || raw.startsWith('https://')
+        ? raw
+        : `https://${raw}`).replace(/\/+$/, '');
+    }
+  }
+
+  // 4. Request headers if available
+  if (request) {
+    try {
+      const headers = request.headers;
+      const forwardedHost = headers.get('x-forwarded-host');
+      const forwardedProto = headers.get('x-forwarded-proto') || 'https';
+
+      if (forwardedHost) {
+        return `${forwardedProto}://${forwardedHost}`.replace(/\/+$/, '');
+      }
+
+      const host = headers.get('host');
+      if (host && !host.includes('localhost') && !host.includes('127.0.0.1')) {
+        return `https://${host}`.replace(/\/+$/, '');
+      }
+
+      if ('nextUrl' in request && request.nextUrl?.origin && request.nextUrl.origin !== 'null') {
+        return request.nextUrl.origin.replace(/\/+$/, '');
+      }
+    } catch (e) {
+      // Fallback
+    }
+  }
+
+  // 5. Default fallback for local development
+  return 'http://localhost:3000';
+}
+
+export function getGoogleOAuthUrl(appUrl: string, userId: string): string {
   const clientId = process.env.GOOGLE_CLIENT_ID || '';
-  const redirectUri = `${origin}/api/auth/google-calendar/callback`;
+  const redirectUri = `${appUrl.replace(/\/+$/, '')}/api/auth/google-calendar/callback`;
 
   const params = new URLSearchParams({
     client_id: clientId,

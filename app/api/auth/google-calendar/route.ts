@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getGoogleOAuthUrl } from '@/lib/calendar/googleAuth';
+import { getGoogleOAuthUrl, getAppUrl } from '@/lib/calendar/googleAuth';
 
 export async function GET(request: NextRequest) {
-  const origin = request.nextUrl.origin;
+  const appUrl = getAppUrl(request);
   const userId = request.nextUrl.searchParams.get('userId');
 
   if (!userId) {
@@ -22,6 +22,6 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  const authUrl = getGoogleOAuthUrl(origin, userId);
+  const authUrl = getGoogleOAuthUrl(appUrl, userId);
   return NextResponse.redirect(authUrl);
 }

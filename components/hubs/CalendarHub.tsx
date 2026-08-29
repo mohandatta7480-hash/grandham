@@ -1320,7 +1320,7 @@ export const CalendarHub: React.FC = () => {
                 <li>
                   In <strong>Authorized redirect URIs</strong>, add this exact URL:
                   <div className="mt-1 p-2 rounded-lg bg-app-bg font-mono text-[11px] text-app-accent select-all break-all border border-app-border">
-                    {typeof window !== 'undefined' ? `${window.location.origin}/api/auth/google-calendar/callback` : 'http://localhost:3000/api/auth/google-calendar/callback'}
+                    {typeof window !== 'undefined' ? `${window.location.origin}/api/auth/google-calendar/callback` : 'https://grandham.vercel.app/api/auth/google-calendar/callback'}
                   </div>
                 </li>
                 <li>
