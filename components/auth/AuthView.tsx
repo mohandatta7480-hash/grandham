@@ -79,9 +79,13 @@ export const AuthView: React.FC<AuthViewProps> = ({ onContinueAsGuest }) => {
     setSuccessMsg(null);
 
     try {
+      const origin = typeof window !== 'undefined' ? window.location.origin : undefined;
       const { data, error } = await supabase.auth.signUp({
         email: cleanEmail,
         password,
+        options: {
+          emailRedirectTo: origin,
+        },
       });
 
       if (error) {
