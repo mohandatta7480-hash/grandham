@@ -100,15 +100,25 @@ export const AuthView: React.FC<AuthViewProps> = ({ onContinueAsGuest }) => {
         return;
       }
 
-      // If signup succeeded without immediate session, sign in directly with the same credentials
-      const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
-        email: cleanEmail,
-        password,
-      });
+      // If user was created but session is null, Supabase has "Confirm email" enabled
+      if (data.user && !data.session) {
+        // Attempt password sign-in
+        const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+          email: cleanEmail,
+          password,
+        });
 
-      if (signInError) {
-        setErrorMsg('Account created. Please log in with your credentials.');
-        setTab('login');
+        if (signInData?.session) {
+          return;
+        }
+
+        if (signInError) {
+          setErrorMsg(
+            'Account created! If you cannot log in, Supabase email confirmation is enabled. Please check your inbox or disable "Confirm email" in Supabase Dashboard → Authentication → Providers → Email.'
+          );
+          setTab('login');
+          return;
+        }
       }
     } catch (err: any) {
       console.error('Sign up error:', err);
