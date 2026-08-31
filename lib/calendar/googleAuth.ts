@@ -19,19 +19,33 @@ export const GOOGLE_CALENDAR_SCOPES = [
  * 6. Local development fallback (http://localhost:3000)
  */
 export function getAppUrl(request?: NextRequest | Request): string {
-  // 1. Explicit server-side APP_URL environment variable
-  if (process.env.APP_URL) {
-    const raw = process.env.APP_URL.trim();
-    if (raw) {
-      return (raw.startsWith('http://') || raw.startsWith('https://')
-        ? raw
-        : `https://${raw}`).replace(/\/+$/, '');
+  // 1. Derive dynamically from incoming request if available
+  if (request) {
+    try {
+      const headers = request.headers;
+      const forwardedHost = headers.get('x-forwarded-host');
+      const forwardedProto = headers.get('x-forwarded-proto') || 'https';
+
+      if (forwardedHost) {
+        return `${forwardedProto}://${forwardedHost}`.replace(/\/+$/, '');
+      }
+
+      if ('nextUrl' in request && request.nextUrl?.origin && request.nextUrl.origin !== 'null') {
+        return request.nextUrl.origin.replace(/\/+$/, '');
+      }
+
+      if ('url' in request && request.url) {
+        const parsed = new URL(request.url);
+        return parsed.origin.replace(/\/+$/, '');
+      }
+    } catch (e) {
+      // Fallback
     }
   }
 
-  // 2. Client/Server NEXT_PUBLIC_APP_URL
-  if (process.env.NEXT_PUBLIC_APP_URL) {
-    const raw = process.env.NEXT_PUBLIC_APP_URL.trim();
+  // 2. Explicit server-side APP_URL environment variable
+  if (process.env.APP_URL) {
+    const raw = process.env.APP_URL.trim();
     if (raw) {
       return (raw.startsWith('http://') || raw.startsWith('https://')
         ? raw
@@ -49,31 +63,22 @@ export function getAppUrl(request?: NextRequest | Request): string {
     }
   }
 
-  // 4. Request headers if available
-  if (request) {
-    try {
-      const headers = request.headers;
-      const forwardedHost = headers.get('x-forwarded-host');
-      const forwardedProto = headers.get('x-forwarded-proto') || 'https';
-
-      if (forwardedHost) {
-        return `${forwardedProto}://${forwardedHost}`.replace(/\/+$/, '');
-      }
-
-      const host = headers.get('host');
-      if (host && !host.includes('localhost') && !host.includes('127.0.0.1')) {
-        return `https://${host}`.replace(/\/+$/, '');
-      }
-
-      if ('nextUrl' in request && request.nextUrl?.origin && request.nextUrl.origin !== 'null') {
-        return request.nextUrl.origin.replace(/\/+$/, '');
-      }
-    } catch (e) {
-      // Fallback
+  // 4. Client/Server NEXT_PUBLIC_APP_URL
+  if (process.env.NEXT_PUBLIC_APP_URL) {
+    const raw = process.env.NEXT_PUBLIC_APP_URL.trim();
+    if (raw) {
+      return (raw.startsWith('http://') || raw.startsWith('https://')
+        ? raw
+        : `https://${raw}`).replace(/\/+$/, '');
     }
   }
 
-  // 5. Default fallback for local development
+  // 5. Browser runtime origin
+  if (typeof window !== 'undefined' && window.location?.origin) {
+    return window.location.origin.replace(/\/+$/, '');
+  }
+
+  // 6. Default fallback for local development
   return 'http://localhost:3000';
 }
 

@@ -11,11 +11,11 @@ export async function GET(request: NextRequest) {
 
   if (error) {
     console.error('Google OAuth callback error:', error);
-    return NextResponse.redirect(`${appUrl}/?hub=calendar&error=${encodeURIComponent(error)}`);
+    return NextResponse.redirect(new URL(`/?hub=calendar&error=${encodeURIComponent(error)}`, request.url));
   }
 
   if (!code || !userId) {
-    return NextResponse.redirect(`${appUrl}/?hub=calendar&error=Missing+authorization+code+or+user+state`);
+    return NextResponse.redirect(new URL('/?hub=calendar&error=Missing+authorization+code+or+user+state', request.url));
   }
 
   try {
@@ -44,12 +44,12 @@ export async function GET(request: NextRequest) {
 
     if (dbError) {
       console.error('Failed to save Google Calendar connection in Supabase:', dbError);
-      return NextResponse.redirect(`${appUrl}/?hub=calendar&error=Failed+to+save+calendar+credentials`);
+      return NextResponse.redirect(new URL('/?hub=calendar&error=Failed+to+save+calendar+credentials', request.url));
     }
 
-    return NextResponse.redirect(`${appUrl}/?hub=calendar&google_connected=true`);
+    return NextResponse.redirect(new URL('/?hub=calendar&google_connected=true', request.url));
   } catch (err: any) {
     console.error('Failed in Google OAuth callback:', err);
-    return NextResponse.redirect(`${appUrl}/?hub=calendar&error=${encodeURIComponent(err.message || 'OAuth error')}`);
+    return NextResponse.redirect(new URL(`/?hub=calendar&error=${encodeURIComponent(err.message || 'OAuth error')}`, request.url));
   }
 }
