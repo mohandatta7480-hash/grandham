@@ -14,9 +14,8 @@ export const GOOGLE_CALENDAR_SCOPES = [
  * 1. Server-side process.env.APP_URL (e.g. https://grandham.vercel.app)
  * 2. process.env.NEXT_PUBLIC_APP_URL
  * 3. process.env.VERCEL_URL (automatically populated on Vercel)
- * 4. Request headers: x-forwarded-proto + x-forwarded-host (reverse proxies & custom domains)
- * 5. Request nextUrl.origin (if available)
- * 6. Local development fallback (http://localhost:3000)
+ * 5. Browser runtime origin (window.location.origin)
+ * 6. Relative base URL fallback ("")
  */
 export function getAppUrl(request?: NextRequest | Request): string {
   // 1. Derive dynamically from incoming request if available
