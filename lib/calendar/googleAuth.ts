@@ -78,13 +78,14 @@ export function getAppUrl(request?: NextRequest | Request): string {
     return window.location.origin.replace(/\/+$/, '');
   }
 
-  // 6. Default fallback for local development
-  return 'http://localhost:3000';
+  // 6. Relative base URL fallback
+  return '';
 }
 
 export function getGoogleOAuthUrl(appUrl: string, userId: string): string {
   const clientId = process.env.GOOGLE_CLIENT_ID || '';
-  const redirectUri = `${appUrl.replace(/\/+$/, '')}/api/auth/google-calendar/callback`;
+  const base = appUrl ? appUrl.replace(/\/+$/, '') : '';
+  const redirectUri = `${base}/api/auth/google-calendar/callback`;
 
   const params = new URLSearchParams({
     client_id: clientId,
