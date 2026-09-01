@@ -15,6 +15,7 @@ import { RecycleBinHub } from '@/components/hubs/RecycleBinHub';
 import { AssignmentsHub } from '@/components/hubs/AssignmentsHub';
 import { NotebookViewer } from '@/components/notebook/NotebookViewer';
 import { TextbookViewer } from '@/components/textbook/TextbookViewer';
+import { AuthView } from '@/components/auth/AuthView';
 import { CreateModal } from '@/components/modals/CreateModal';
 import { ThemeToggle } from '@/components/theme/ThemeToggle';
 import type { User } from '@supabase/supabase-js';
@@ -158,6 +159,22 @@ export default function GrandhamApp() {
       console.error('Failed to update textbook in Supabase:', e);
     }
   };
+
+  // Show quick smooth loader while restoring persistent session from localStorage
+  if (isAuthLoading) {
+    return (
+      <div className="h-screen w-screen flex flex-col items-center justify-center bg-app-bg text-app-text space-y-3 theme-transition">
+        <span className="font-serif text-base text-app-text-muted animate-pulse">
+          Grandham
+        </span>
+      </div>
+    );
+  }
+
+  // If no persistent session exists, render the email/password AuthView
+  if (!user && !isGuest) {
+    return <AuthView onContinueAsGuest={() => setIsGuest(true)} />;
+  }
 
   // Active Multi-Page Notebook Viewer
   if (activeNotebook) {

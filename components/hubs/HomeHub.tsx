@@ -332,11 +332,19 @@ export const HomeHub: React.FC<HomeHubProps> = ({
           Home
         </h1>
         <div className="flex items-center gap-3">
-          {userEmail && userEmail !== 'Personal Workspace' && (
+          {userEmail && (
             <span className="text-[11px] font-mono text-app-text-muted hidden sm:inline truncate max-w-[180px]">
               {userEmail}
             </span>
           )}
+          <button
+            type="button"
+            onClick={onSignOut}
+            className="p-1.5 rounded-lg text-app-text-muted hover:text-app-text hover:bg-app-surface-hover transition-colors border border-app-border cursor-pointer"
+            title="Sign out"
+          >
+            <LogOut className="w-4 h-4" />
+          </button>
           <ThemeToggle />
         </div>
       </header>
