@@ -17,7 +17,12 @@ import {
   AlertCircle,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { getLocalDateString, formatPlannerDate } from '@/lib/utils/dateUtils';
+import {
+  getLocalDateString,
+  formatPlannerDate,
+  getLocalStarredTaskIds,
+  setLocalTaskStarred,
+} from '@/lib/utils/dateUtils';
 
 interface HomeHubProps {
   userEmail?: string;
@@ -164,7 +169,17 @@ export const HomeHub: React.FC<HomeHubProps> = ({
         .eq('is_deleted', false)
         .order('created_at', { ascending: true });
 
-      if (taskData) setTodayTasks(taskData);
+      if (taskData) {
+        const localStarred = getLocalStarredTaskIds();
+        const mergedTasks = taskData.map((t) => ({
+          ...t,
+          is_starred:
+            t.is_starred !== undefined && t.is_starred !== null
+              ? Boolean(t.is_starred)
+              : localStarred.has(t.id),
+        }));
+        setTodayTasks(mergedTasks);
+      }
 
       // 4. Fetch assignments if table exists
       try {
@@ -274,18 +289,23 @@ export const HomeHub: React.FC<HomeHubProps> = ({
   const handleToggleStarTask = async (task: DailyTask, e: React.MouseEvent) => {
     e.stopPropagation();
     const nextStarred = !task.is_starred;
+    
+    // 1. Immediately update UI state
     setTodayTasks((prev) =>
       prev.map((t) => (t.id === task.id ? { ...t, is_starred: nextStarred } : t))
     );
 
-    const { error } = await supabase
-      .from('daily_tasks')
-      .update({ is_starred: nextStarred, updated_at: new Date().toISOString() })
-      .eq('id', task.id);
+    // 2. Immediately persist to localStorage
+    setLocalTaskStarred(task.id, nextStarred);
 
-    if (error) {
-      console.error('Failed to update task star in Supabase:', error);
-      fetchData();
+    // 3. Save to Supabase
+    try {
+      await supabase
+        .from('daily_tasks')
+        .update({ is_starred: nextStarred, updated_at: new Date().toISOString() })
+        .eq('id', task.id);
+    } catch (err) {
+      console.warn('Supabase task star sync notice:', err);
     }
   };
 

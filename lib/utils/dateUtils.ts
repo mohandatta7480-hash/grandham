@@ -61,3 +61,36 @@ export function getDateRelativeLabel(dateStr: string, todayStr: string): string 
   if (diffDays === -1) return 'Yesterday';
   return formatPlannerDate(dateStr, { weekday: 'short', month: 'short', day: 'numeric' });
 }
+
+/**
+ * Retrieves the set of starred task IDs saved in localStorage.
+ */
+export function getLocalStarredTaskIds(): Set<string> {
+  if (typeof window === 'undefined') return new Set();
+  try {
+    const raw = localStorage.getItem('grandham_starred_tasks');
+    if (!raw) return new Set();
+    const parsed = JSON.parse(raw);
+    return new Set(Array.isArray(parsed) ? parsed : []);
+  } catch {
+    return new Set();
+  }
+}
+
+/**
+ * Saves or removes a task ID from localStorage starred task set.
+ */
+export function setLocalTaskStarred(id: string, isStarred: boolean): void {
+  if (typeof window === 'undefined') return;
+  try {
+    const set = getLocalStarredTaskIds();
+    if (isStarred) {
+      set.add(id);
+    } else {
+      set.delete(id);
+    }
+    localStorage.setItem('grandham_starred_tasks', JSON.stringify(Array.from(set)));
+  } catch (e) {
+    console.warn('Failed to save starred tasks to localStorage:', e);
+  }
+}

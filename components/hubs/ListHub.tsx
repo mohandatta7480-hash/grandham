@@ -9,6 +9,8 @@ import {
   formatPlannerDate,
   formatShortPlannerDate,
   getDateRelativeLabel,
+  getLocalStarredTaskIds,
+  setLocalTaskStarred,
 } from '@/lib/utils/dateUtils';
 import {
   Plus,
@@ -114,7 +116,17 @@ export const ListHub: React.FC = () => {
         .order('planned_time', { ascending: true });
 
       if (tasksError) throw tasksError;
-      if (tasksData) setTasks(tasksData);
+      if (tasksData) {
+        const localStarred = getLocalStarredTaskIds();
+        const merged = tasksData.map((t) => ({
+          ...t,
+          is_starred:
+            t.is_starred !== undefined && t.is_starred !== null
+              ? Boolean(t.is_starred)
+              : localStarred.has(t.id),
+        }));
+        setTasks(merged);
+      }
     } catch (err: any) {
       console.error('Error loading planner data from Supabase:', err);
     } finally {
@@ -272,22 +284,23 @@ export const ListHub: React.FC = () => {
   const handleToggleStarTask = async (task: DailyTask, e: React.MouseEvent) => {
     e.stopPropagation();
     const nextStarred = !task.is_starred;
+    
+    // 1. Immediately update UI state
     setTasks((prev) =>
       prev.map((t) => (t.id === task.id ? { ...t, is_starred: nextStarred } : t))
     );
 
+    // 2. Immediately persist to localStorage
+    setLocalTaskStarred(task.id, nextStarred);
+
+    // 3. Save to Supabase
     try {
-      const { error } = await supabase
+      await supabase
         .from('daily_tasks')
         .update({ is_starred: nextStarred, updated_at: new Date().toISOString() })
         .eq('id', task.id);
-
-      if (error) {
-        console.warn('Failed to update task star in Supabase:', error);
-      }
     } catch (err) {
-      console.error('Failed to update task star:', err);
-      fetchData();
+      console.warn('Supabase task star sync notice:', err);
     }
   };
 
