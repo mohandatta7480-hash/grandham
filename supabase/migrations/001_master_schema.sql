@@ -174,6 +174,7 @@ alter table public.calendar_events add column if not exists calendar_id text def
 alter table public.calendar_events add column if not exists sync_status text default 'synced';
 alter table public.calendar_events add column if not exists google_event_id text;
 alter table public.user_calendar_connections add column if not exists calendar_id text default 'primary';
+alter table public.daily_tasks add column if not exists is_starred boolean not null default false;
 
 -- ==============================================================================
 -- 3. ROW LEVEL SECURITY (RLS) POLICIES

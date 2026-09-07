@@ -17,6 +17,7 @@ import {
   Trash2,
   ChevronRight,
   X,
+  Star,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -25,6 +26,7 @@ interface DraftTask {
   title: string;
   planned_time: string;
   notes: string;
+  is_starred?: boolean;
 }
 
 export const ListHub: React.FC = () => {
@@ -125,7 +127,7 @@ export const ListHub: React.FC = () => {
   }, [fetchData]);
 
   // Draft Task Management in Modal
-  const handleDraftTaskChange = (id: string, field: keyof DraftTask, value: string) => {
+  const handleDraftTaskChange = (id: string, field: keyof DraftTask, value: any) => {
     setDraftTasks((prev) =>
       prev.map((dt) => (dt.id === id ? { ...dt, [field]: value } : dt))
     );
@@ -199,6 +201,7 @@ export const ListHub: React.FC = () => {
           task_date: createDate,
           planned_time: t.planned_time.trim() || null,
           notes: t.notes.trim() || null,
+          is_starred: Boolean(t.is_starred),
           is_completed: false,
           is_deleted: false,
         }));
@@ -242,6 +245,7 @@ export const ListHub: React.FC = () => {
             task_date: selectedDate,
             planned_time: inlineTaskTime.trim() || null,
             notes: inlineTaskNotes.trim() || null,
+            is_starred: false,
             is_completed: false,
             is_deleted: false,
           },
@@ -260,6 +264,29 @@ export const ListHub: React.FC = () => {
       }
     } catch (err) {
       console.error('Failed to add inline task:', err);
+      fetchData();
+    }
+  };
+
+  // Toggle Task Star (Pins task to top of list)
+  const handleToggleStarTask = async (task: DailyTask, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const nextStarred = !task.is_starred;
+    setTasks((prev) =>
+      prev.map((t) => (t.id === task.id ? { ...t, is_starred: nextStarred } : t))
+    );
+
+    try {
+      const { error } = await supabase
+        .from('daily_tasks')
+        .update({ is_starred: nextStarred, updated_at: new Date().toISOString() })
+        .eq('id', task.id);
+
+      if (error) {
+        console.warn('Failed to update task star in Supabase:', error);
+      }
+    } catch (err) {
+      console.error('Failed to update task star:', err);
       fetchData();
     }
   };
@@ -333,9 +360,24 @@ export const ListHub: React.FC = () => {
     return Array.from(datesSet).sort();
   }, [taskLists, tasks]);
 
-  // Tasks for Currently Selected Date
+  // Tasks for Currently Selected Date (Starred tasks pinned to top)
   const selectedDateTasks = useMemo(() => {
-    return tasks.filter((t) => t.task_date === selectedDate);
+    const dateTasks = tasks.filter((t) => t.task_date === selectedDate);
+    return dateTasks.sort((a, b) => {
+      // 1. Incomplete before completed
+      if (a.is_completed !== b.is_completed) {
+        return a.is_completed ? 1 : -1;
+      }
+      // 2. Starred tasks appear at top of list
+      if (Boolean(a.is_starred) !== Boolean(b.is_starred)) {
+        return a.is_starred ? -1 : 1;
+      }
+      // 3. Planned time / creation
+      const timeA = a.planned_time || '99:99';
+      const timeB = b.planned_time || '99:99';
+      if (timeA !== timeB) return timeA.localeCompare(timeB);
+      return (a.created_at || '').localeCompare(b.created_at || '');
+    });
   }, [tasks, selectedDate]);
 
   // TaskList info for Selected Date (if custom title given)
@@ -505,7 +547,10 @@ export const ListHub: React.FC = () => {
                       'group p-3.5 rounded-xl border transition-all cursor-pointer space-y-1.5 text-xs',
                       task.is_completed
                         ? 'bg-app-bg/40 border-transparent text-app-text-dim line-through opacity-70'
-                        : 'bg-app-bg border-app-border hover:border-app-border-strong text-app-text shadow-subtle'
+                        : cn(
+                            'bg-app-bg border-app-border hover:border-app-border-strong text-app-text shadow-subtle',
+                            task.is_starred && 'border-amber-500/30 bg-amber-500/[0.03]'
+                          )
                     )}
                   >
                     <div className="flex items-start justify-between gap-3">
@@ -525,14 +570,30 @@ export const ListHub: React.FC = () => {
                         </span>
                       </div>
 
-                      <button
-                        type="button"
-                        onClick={(e) => handleDeleteTask(task.id, e)}
-                        className="text-app-text-dim hover:text-rose-500 opacity-0 group-hover:opacity-100 transition-opacity p-0.5"
-                        title="Delete task"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
+                      <div className="flex items-center gap-1 flex-shrink-0">
+                        <button
+                          type="button"
+                          onClick={(e) => handleToggleStarTask(task, e)}
+                          className={cn(
+                            'p-1 rounded-md transition-colors cursor-pointer',
+                            task.is_starred
+                              ? 'text-amber-400 hover:text-amber-500'
+                              : 'text-app-text-dim hover:text-amber-400 opacity-60 group-hover:opacity-100'
+                          )}
+                          title={task.is_starred ? 'Starred (pinned to top)' : 'Star task (pin to top)'}
+                        >
+                          <Star className={cn('w-3.5 h-3.5', task.is_starred && 'fill-current')} />
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={(e) => handleDeleteTask(task.id, e)}
+                          className="text-app-text-dim hover:text-rose-500 opacity-0 group-hover:opacity-100 transition-opacity p-1 cursor-pointer"
+                          title="Delete task"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
                     </div>
 
                     {(task.planned_time || task.notes) && (
@@ -753,7 +814,10 @@ export const ListHub: React.FC = () => {
                   {draftTasks.map((dt, index) => (
                     <div
                       key={dt.id}
-                      className="p-3 rounded-xl bg-app-bg border border-app-border space-y-2"
+                      className={cn(
+                        'p-3 rounded-xl bg-app-bg border border-app-border space-y-2 transition-colors',
+                        dt.is_starred && 'border-amber-500/40 bg-amber-500/[0.04]'
+                      )}
                     >
                       <div className="flex items-center gap-2">
                         <span className="text-[10px] font-mono text-app-text-dim w-4">
@@ -769,8 +833,21 @@ export const ListHub: React.FC = () => {
                         />
                         <button
                           type="button"
+                          onClick={() => handleDraftTaskChange(dt.id, 'is_starred', !dt.is_starred)}
+                          className={cn(
+                            'p-1 rounded-md transition-colors cursor-pointer',
+                            dt.is_starred
+                              ? 'text-amber-400 hover:text-amber-500'
+                              : 'text-app-text-dim hover:text-amber-400'
+                          )}
+                          title={dt.is_starred ? 'Starred (will appear at top)' : 'Star this task (pin to top)'}
+                        >
+                          <Star className={cn('w-3.5 h-3.5', dt.is_starred && 'fill-current')} />
+                        </button>
+                        <button
+                          type="button"
                           onClick={() => handleRemoveDraftTaskRow(dt.id)}
-                          className="text-app-text-dim hover:text-rose-500 p-0.5"
+                          className="text-app-text-dim hover:text-rose-500 p-0.5 cursor-pointer"
                           title="Remove task"
                         >
                           <X className="w-3.5 h-3.5" />

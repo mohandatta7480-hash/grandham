@@ -151,6 +151,8 @@ export interface DailyTask {
   planned_time?: string | null; // HH:mm
   notes?: string | null;
   is_completed: boolean;
+  is_starred?: boolean;
+  isStarred?: boolean;
   is_time_blocked?: boolean;
   is_deleted?: boolean;
   created_at?: string;

@@ -270,6 +270,25 @@ export const HomeHub: React.FC<HomeHubProps> = ({
     }
   };
 
+  // Toggle Task Star (Pins task to top)
+  const handleToggleStarTask = async (task: DailyTask, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const nextStarred = !task.is_starred;
+    setTodayTasks((prev) =>
+      prev.map((t) => (t.id === task.id ? { ...t, is_starred: nextStarred } : t))
+    );
+
+    const { error } = await supabase
+      .from('daily_tasks')
+      .update({ is_starred: nextStarred, updated_at: new Date().toISOString() })
+      .eq('id', task.id);
+
+    if (error) {
+      console.error('Failed to update task star in Supabase:', error);
+      fetchData();
+    }
+  };
+
   // Toggle Star on Notebook
   const handleToggleStarNotebook = async (nb: Notebook, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -314,6 +333,17 @@ export const HomeHub: React.FC<HomeHubProps> = ({
   const starredNotebooks = notebooks.filter((n) => n.is_starred);
   const starredTextbooks = textbooks.filter((t) => t.is_starred);
   const hasStarred = starredNotebooks.length > 0 || starredTextbooks.length > 0;
+
+  // Starred Today Tasks appear at the top of the Today list
+  const sortedTodayTasks = [...todayTasks].sort((a, b) => {
+    if (a.is_completed !== b.is_completed) {
+      return a.is_completed ? 1 : -1;
+    }
+    if (Boolean(a.is_starred) !== Boolean(b.is_starred)) {
+      return a.is_starred ? -1 : 1;
+    }
+    return (a.created_at || '').localeCompare(b.created_at || '');
+  });
 
   // Sorted upcoming active assignments (sorted by nearest deadline first)
   const sortedAssignments = [...assignments]
@@ -416,15 +446,18 @@ export const HomeHub: React.FC<HomeHubProps> = ({
                   Nothing planned for today.
                 </div>
               ) : (
-                todayTasks.map((task) => (
+                sortedTodayTasks.map((task) => (
                   <div
                     key={task.id}
                     onClick={() => handleToggleTask(task)}
                     className={cn(
                       'group flex items-start justify-between gap-3 p-3 rounded-xl border transition-all cursor-pointer text-xs',
                       task.is_completed
-                        ? 'bg-app-bg/50 border-transparent text-app-text-dim line-through'
-                        : 'bg-app-surface border-app-border text-app-text hover:border-app-accent/60'
+                        ? 'bg-app-bg/50 border-transparent text-app-text-dim line-through opacity-70'
+                        : cn(
+                            'bg-app-surface border-app-border text-app-text hover:border-app-accent/60',
+                            task.is_starred && 'border-amber-500/30 bg-amber-500/[0.03]'
+                          )
                     )}
                   >
                     <div className="flex items-start gap-3 min-w-0 flex-1">
@@ -441,14 +474,30 @@ export const HomeHub: React.FC<HomeHubProps> = ({
                       <span className="break-words leading-relaxed">{task.title}</span>
                     </div>
 
-                    <button
-                      type="button"
-                      onClick={(e) => handleDeleteTask(task.id, e)}
-                      className="text-app-text-dim hover:text-rose-500 opacity-0 group-hover:opacity-100 transition-opacity p-0.5"
-                      title="Remove task"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
+                    <div className="flex items-center gap-1 flex-shrink-0">
+                      <button
+                        type="button"
+                        onClick={(e) => handleToggleStarTask(task, e)}
+                        className={cn(
+                          'p-1 rounded-md transition-colors cursor-pointer',
+                          task.is_starred
+                            ? 'text-amber-400 hover:text-amber-500'
+                            : 'text-app-text-dim hover:text-amber-400 opacity-60 group-hover:opacity-100'
+                        )}
+                        title={task.is_starred ? 'Starred (pinned to top)' : 'Star task (pin to top)'}
+                      >
+                        <Star className={cn('w-3.5 h-3.5', task.is_starred && 'fill-current')} />
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={(e) => handleDeleteTask(task.id, e)}
+                        className="text-app-text-dim hover:text-rose-500 opacity-0 group-hover:opacity-100 transition-opacity p-1 cursor-pointer"
+                        title="Remove task"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
                   </div>
                 ))
               )}
