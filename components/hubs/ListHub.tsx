@@ -570,15 +570,15 @@ export const ListHub: React.FC = () => {
                         </span>
                       </div>
 
-                      <div className="flex items-center gap-1 flex-shrink-0">
+                      <div className="flex items-center gap-1.5 flex-shrink-0">
                         <button
                           type="button"
                           onClick={(e) => handleToggleStarTask(task, e)}
                           className={cn(
-                            'p-1 rounded-md transition-colors cursor-pointer',
+                            'p-1 rounded-md transition-all cursor-pointer',
                             task.is_starred
-                              ? 'text-amber-400 hover:text-amber-500'
-                              : 'text-app-text-dim hover:text-amber-400 opacity-60 group-hover:opacity-100'
+                              ? 'text-amber-400 hover:text-amber-500 opacity-100'
+                              : 'text-app-text-dim hover:text-amber-400 opacity-0 group-hover:opacity-100'
                           )}
                           title={task.is_starred ? 'Starred (pinned to top)' : 'Star task (pin to top)'}
                         >
