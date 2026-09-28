@@ -218,11 +218,45 @@ export const ListHub: React.FC = () => {
           is_deleted: false,
         }));
 
-        const { error: tasksError } = await supabase
+        let insertRes = await supabase
           .from('daily_tasks')
-          .insert(tasksToInsert);
+          .insert(tasksToInsert)
+          .select();
 
-        if (tasksError) throw tasksError;
+        // Fallback: If remote Supabase schema cache does not yet have 'is_starred' column
+        if (
+          insertRes.error &&
+          (insertRes.error.message?.includes('is_starred') ||
+            insertRes.error.code === 'PGRST204' ||
+            insertRes.error.message?.includes('schema cache'))
+        ) {
+          const fallbackTasks = validDraftTasks.map((t) => ({
+            user_id: userId,
+            list_id: listData?.id || listId,
+            title: t.title.trim(),
+            task_date: createDate,
+            planned_time: t.planned_time.trim() || null,
+            notes: t.notes.trim() || null,
+            is_completed: false,
+            is_deleted: false,
+          }));
+
+          insertRes = await supabase
+            .from('daily_tasks')
+            .insert(fallbackTasks)
+            .select();
+        }
+
+        if (insertRes.error) throw insertRes.error;
+
+        // Persist any starred tasks in local cache so they stay pinned to top
+        if (insertRes.data) {
+          insertRes.data.forEach((taskItem: any, idx: number) => {
+            if (validDraftTasks[idx]?.is_starred) {
+              setLocalTaskStarred(taskItem.id, true);
+            }
+          });
+        }
       }
 
       // Success: Switch main view to the newly created date and close modal
@@ -247,7 +281,7 @@ export const ListHub: React.FC = () => {
       const userId = await getCurrentUserId();
 
       const currentList = taskLists.find((l) => l.list_date === selectedDate);
-      const { data, error } = await supabase
+      let insertRes = await supabase
         .from('daily_tasks')
         .insert([
           {
@@ -265,10 +299,35 @@ export const ListHub: React.FC = () => {
         .select()
         .single();
 
-      if (error) throw error;
+      // Fallback: If remote schema cache does not have 'is_starred'
+      if (
+        insertRes.error &&
+        (insertRes.error.message?.includes('is_starred') ||
+          insertRes.error.code === 'PGRST204' ||
+          insertRes.error.message?.includes('schema cache'))
+      ) {
+        insertRes = await supabase
+          .from('daily_tasks')
+          .insert([
+            {
+              user_id: userId,
+              list_id: currentList?.id || null,
+              title,
+              task_date: selectedDate,
+              planned_time: inlineTaskTime.trim() || null,
+              notes: inlineTaskNotes.trim() || null,
+              is_completed: false,
+              is_deleted: false,
+            },
+          ])
+          .select()
+          .single();
+      }
 
-      if (data) {
-        setTasks((prev) => [...prev, data]);
+      if (insertRes.error) throw insertRes.error;
+
+      if (insertRes.data) {
+        setTasks((prev) => [...prev, insertRes.data]);
         setInlineTaskTitle('');
         setInlineTaskTime('');
         setInlineTaskNotes('');
