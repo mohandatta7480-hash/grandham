@@ -204,7 +204,7 @@ export const ListHub: React.FC = () => {
 
       if (listError) throw listError;
 
-      // 2. Create the associated tasks
+      // 2. Create the associated tasks (guaranteed clean schema payload without unknown columns)
       if (validDraftTasks.length > 0) {
         const tasksToInsert = validDraftTasks.map((t) => ({
           user_id: userId,
@@ -213,47 +213,29 @@ export const ListHub: React.FC = () => {
           task_date: createDate,
           planned_time: t.planned_time.trim() || null,
           notes: t.notes.trim() || null,
-          is_starred: Boolean(t.is_starred),
           is_completed: false,
           is_deleted: false,
         }));
 
-        let insertRes = await supabase
+        const { data: insertedTasks, error: tasksError } = await supabase
           .from('daily_tasks')
           .insert(tasksToInsert)
           .select();
 
-        // Fallback: If remote Supabase schema cache does not yet have 'is_starred' column
-        if (
-          insertRes.error &&
-          (insertRes.error.message?.includes('is_starred') ||
-            insertRes.error.code === 'PGRST204' ||
-            insertRes.error.message?.includes('schema cache'))
-        ) {
-          const fallbackTasks = validDraftTasks.map((t) => ({
-            user_id: userId,
-            list_id: listData?.id || listId,
-            title: t.title.trim(),
-            task_date: createDate,
-            planned_time: t.planned_time.trim() || null,
-            notes: t.notes.trim() || null,
-            is_completed: false,
-            is_deleted: false,
-          }));
+        if (tasksError) throw tasksError;
 
-          insertRes = await supabase
-            .from('daily_tasks')
-            .insert(fallbackTasks)
-            .select();
-        }
-
-        if (insertRes.error) throw insertRes.error;
-
-        // Persist any starred tasks in local cache so they stay pinned to top
-        if (insertRes.data) {
-          insertRes.data.forEach((taskItem: any, idx: number) => {
+        // Persist any starred tasks in local storage cache and background sync
+        if (insertedTasks) {
+          insertedTasks.forEach((taskItem: any, idx: number) => {
             if (validDraftTasks[idx]?.is_starred) {
               setLocalTaskStarred(taskItem.id, true);
+              // Non-blocking background sync to Supabase if column exists
+              Promise.resolve(
+                supabase
+                  .from('daily_tasks')
+                  .update({ is_starred: true })
+                  .eq('id', taskItem.id)
+              ).catch(() => {});
             }
           });
         }
@@ -281,7 +263,7 @@ export const ListHub: React.FC = () => {
       const userId = await getCurrentUserId();
 
       const currentList = taskLists.find((l) => l.list_date === selectedDate);
-      let insertRes = await supabase
+      const { data, error } = await supabase
         .from('daily_tasks')
         .insert([
           {
@@ -291,7 +273,6 @@ export const ListHub: React.FC = () => {
             task_date: selectedDate,
             planned_time: inlineTaskTime.trim() || null,
             notes: inlineTaskNotes.trim() || null,
-            is_starred: false,
             is_completed: false,
             is_deleted: false,
           },
@@ -299,35 +280,10 @@ export const ListHub: React.FC = () => {
         .select()
         .single();
 
-      // Fallback: If remote schema cache does not have 'is_starred'
-      if (
-        insertRes.error &&
-        (insertRes.error.message?.includes('is_starred') ||
-          insertRes.error.code === 'PGRST204' ||
-          insertRes.error.message?.includes('schema cache'))
-      ) {
-        insertRes = await supabase
-          .from('daily_tasks')
-          .insert([
-            {
-              user_id: userId,
-              list_id: currentList?.id || null,
-              title,
-              task_date: selectedDate,
-              planned_time: inlineTaskTime.trim() || null,
-              notes: inlineTaskNotes.trim() || null,
-              is_completed: false,
-              is_deleted: false,
-            },
-          ])
-          .select()
-          .single();
-      }
+      if (error) throw error;
 
-      if (insertRes.error) throw insertRes.error;
-
-      if (insertRes.data) {
-        setTasks((prev) => [...prev, insertRes.data]);
+      if (data) {
+        setTasks((prev) => [...prev, data]);
         setInlineTaskTitle('');
         setInlineTaskTime('');
         setInlineTaskNotes('');
